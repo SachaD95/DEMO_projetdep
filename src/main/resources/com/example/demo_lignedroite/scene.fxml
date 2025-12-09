@@ -34,9 +34,11 @@
 
                     <CheckBox fx:id="checkboxAngle" text="On tient compte de l'angle" />
 
-                    <CheckBox fx:id="checkboxSmoothing" text="Lissage de la courbe (réduction du bruit)" />
+                    <CheckBox fx:id="checkboxSmoothing" text="On tient compte des irégularité" />
 
-                    <CheckBox fx:id="checkboxResampling" text="Rééchantillonnage à taille fixe (taille égale)" />
+                    <CheckBox fx:id="checkboxLimite" text="on borne le score" />
+
+                    <CheckBox fx:id="checkboxNbrePoints" text="on enlève des points" />
 
                 </VBox>
                 <Button fx:id="applyFeaturesButton" text="Appliquer et Recalculer la Distance" maxWidth="Infinity" onAction="#Scoring"/>

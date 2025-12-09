@@ -27,6 +27,10 @@ public class Controller implements Initializable {
     @FXML private Label statusLabel;
     @FXML private Label scoreLabel;
     @FXML private CheckBox checkboxAngle;
+    @FXML private CheckBox checkboxSmoothing;
+    @FXML private CheckBox checkboxLimite;
+    @FXML private CheckBox checkboxNbrePoints;
+
 
     // --- Logique de Dessin et Modèle ---
     private boolean isDrawingActive = false;
@@ -72,9 +76,6 @@ public class Controller implements Initializable {
         modelPane.getChildren().add(modelLine);
     }
 
-    public void draw(List<Point> ToDraw){
-
-    }
 
     /**
      * Génère une liste de points uniformément espacés pour définir la ligne droite idéale.
@@ -186,12 +187,28 @@ public class Controller implements Initializable {
 
     @FXML
     private void calculateScore() {
+
         // 1. Préparer les points du tracé utilisateur (Q)
         List<Point> userPoints = new ArrayList<>();
         List<Double> rawPoints = currentStroke.getPoints();
-        for (int i = 0; i < rawPoints.size(); i += 2) {
-            userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
+
+
+
+
+        if (checkboxNbrePoints.isSelected()){
+            for (int i = 0; i < rawPoints.size(); i += 10) {
+                userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
+            }
+
         }
+
+        else {
+            for (int i = 0; i < rawPoints.size(); i += 2) {
+                userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
+            }
+        }
+
+
 
         int NEW_POINT_COUNT = rawPoints.size();
         idealPoints = generateLinePoints(startX, startY, endX, endY, NEW_POINT_COUNT);
@@ -230,11 +247,29 @@ public class Controller implements Initializable {
         score = Math.max(0, Math.min(100, score));
 
         if (checkboxAngle.isSelected()){
-            if (AfterRotation.NormalizedAngle()>10){
-                score=score-10;
+            if (AfterRotation.NormalizedAngle()>10 & AfterRotation.NormalizedAngle()<170){
+                score=score-(10* AfterRotation.NormalizedAngle()/180);
             }
 
         }
+
+        if (checkboxSmoothing.isSelected()){
+            DouglasPeuckerAnalyzer.AnalysisResult result =
+                    DouglasPeuckerAnalyzer.analyze(AfterRotation.rotatedPoints(), 1);
+            List<Point> simplifiedQ = result.simplifiedPoints();
+            double noisePenalty = result.totalPenalty();
+
+            System.out.println("Pénalité de bruit totale (somme des écarts) : " + noisePenalty);
+            DH.draw(drawingPane, simplifiedQ,Color.BLACK);
+
+
+
+        }
+
+        if (checkboxLimite.isSelected()){
+
+        }
+
 
 
 
