@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.shape.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.demo_lignedroite.Controller">
+
+    <top>
+        <ToolBar>
+            <Label text="Contrôle du Dessin:"/>
+            <Button text="Activer Dessin" onAction="#handleActivateDrawing" fx:id="activateButton"/>
+            <Button text="Scoring" onAction="#Scoring" fx:id="ScoringButton" disable="true"/>
+            <Button text="Test Dessin" onAction="#Test" fx:id="testButton"/>
+            <Separator orientation="VERTICAL"/>
+
+            <Label fx:id="statusLabel" text="Statut: Dessin Désactivé"/>
+            <Separator orientation="VERTICAL"/>
+            <Label text="Score Fréchet:"/>
+            <Label fx:id="scoreLabel" text="N/A"/> </ToolBar>
+    </top>
+
+    <center>
+        <HBox alignment="CENTER" spacing="10" style="-fx-padding: 10;">
+            <VBox style="-fx-border-color: lightgray; -fx-border-width: 1; -fx-background-color: #EEEEEE;"
+                  prefWidth="300">
+                <Label text="Modèle Idéal (P)"/>
+                <Pane fx:id="modelPane" VBox.vgrow="ALWAYS">
+                </Pane>
+                <VBox spacing="5.0" style="-fx-padding: 10;">
+                    <Label text="**Options de Traitement du Tracé :**" />
+
+                    <CheckBox fx:id="checkboxAngle" text="On tient compte de l'angle" />
+
+                    <CheckBox fx:id="checkboxSmoothing" text="Lissage de la courbe (réduction du bruit)" />
+
+                    <CheckBox fx:id="checkboxResampling" text="Rééchantillonnage à taille fixe (taille égale)" />
+
+                </VBox>
+                <Button fx:id="applyFeaturesButton" text="Appliquer et Recalculer la Distance" maxWidth="Infinity" onAction="#Scoring"/>
+
+            </VBox>
+
+            <VBox style="-fx-border-color: lightgray; -fx-border-width: 1; -fx-background-color: #F0F0F0;"
+                  HBox.hgrow="ALWAYS">
+                <Label text="Votre Tracé (Q)"/>
+                <Pane fx:id="drawingPane" VBox.vgrow="ALWAYS">
+                </Pane>
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>
