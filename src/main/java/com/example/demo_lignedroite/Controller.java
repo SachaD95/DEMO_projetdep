@@ -26,6 +26,15 @@ public class Controller implements Initializable {
     @FXML private Button ScoringButton;
     @FXML private Label statusLabel;
     @FXML private Label scoreLabel;
+    @FXML private Label T1;
+    @FXML private Label T2;
+    @FXML private Label T3;
+    @FXML private Label T4;
+    @FXML private Label T5;
+    @FXML private Label T6;
+
+
+
     @FXML private CheckBox checkboxAngle;
     @FXML private CheckBox checkboxSmoothing;
     @FXML private CheckBox checkboxLimite;
@@ -125,10 +134,20 @@ public class Controller implements Initializable {
         drawingPane.setOnMouseReleased(null);
 
         // Lancer le calcul du score si un tracé a été fait
-        if (currentStroke != null && currentStroke.getPoints().size() >= 4) { // Au moins 2 points
-            calculateScore();
-        } else {
-            scoreLabel.setText("Tracé trop court (min. 2 points).");
+        if (currentStroke != null && currentStroke.getPoints().size() >= 4) {
+            // 1. Préparer les points du tracé utilisateur (Q)
+            List<Point> userPoints = new ArrayList<>();
+            List<Double> rawPoints = currentStroke.getPoints();
+
+            for (int i = 0; i < rawPoints.size(); i += 2) {
+                userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
+            }
+
+
+            Score score = calculateScore(userPoints);
+            displayResults(score,scoreLabel,Color.BLACK,0.0);
+
+
         }
 
     }
@@ -184,33 +203,26 @@ public class Controller implements Initializable {
     // ==========================================================
     // CALCUL ET AFFICHAGE DU SCORE (Distance de Fréchet)
     // ==========================================================
+    public record Score(
+            double Angle,
+            double bestFrechetDistance,
+            double scaleFactor,
+            double score,
+            List<Point> rotatedPoints
+    ) {}
 
     @FXML
-    private void calculateScore() {
+    private Score calculateScore(List<Point> userPoints) {
 
-        // 1. Préparer les points du tracé utilisateur (Q)
-        List<Point> userPoints = new ArrayList<>();
-        List<Double> rawPoints = currentStroke.getPoints();
-
-
-
-
-        if (checkboxNbrePoints.isSelected()){
-            for (int i = 0; i < rawPoints.size(); i += 10) {
-                userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
+        if (checkboxNbrePoints.isSelected()) {
+            List<Point> newPoints = new ArrayList<>();
+            for (int i = 0; i < userPoints.size(); i += 4) {
+                newPoints.add(userPoints.get(i));
             }
-
+            userPoints = newPoints;
         }
 
-        else {
-            for (int i = 0; i < rawPoints.size(); i += 2) {
-                userPoints.add(new Point(rawPoints.get(i), rawPoints.get(i + 1)));
-            }
-        }
-
-
-
-        int NEW_POINT_COUNT = rawPoints.size();
+        int NEW_POINT_COUNT = userPoints.size();
         idealPoints = generateLinePoints(startX, startY, endX, endY, NEW_POINT_COUNT);
 
 
@@ -223,10 +235,6 @@ public class Controller implements Initializable {
         double frechetDistance = AfterRotation.bestFrechetDistance();
         System.out.println(frechetDistance);
         System.out.println(AfterRotation.bestAngle());
-
-        DrawingHelper DH = new DrawingHelper();
-        DH.draw(drawingPane, AfterRotation.rotatedPoints(),Color.RED);
-
 
         // 3. Normaliser la distance pour obtenir un score (0 à 100)
 
@@ -260,7 +268,6 @@ public class Controller implements Initializable {
             double noisePenalty = result.totalPenalty();
 
             System.out.println("Pénalité de bruit totale (somme des écarts) : " + noisePenalty);
-            DH.draw(drawingPane, simplifiedQ,Color.BLACK);
 
 
 
@@ -269,19 +276,47 @@ public class Controller implements Initializable {
         if (checkboxLimite.isSelected()){
 
         }
+    return new Score(AfterRotation.NormalizedAngle(), frechetDistance, AfterRotation.scaleFactor(),score, AfterRotation.rotatedPoints());
+    }
+
+    private void displayResults(Score score, Label label, Color color, Double Offset) {
+
+        List<Point> pointsDecales = new ArrayList<>();
+
+        for (Point p : score.rotatedPoints()) {
+            // x - 50 (Gauche) | y + 50 (Bas)
+            double nouveauX = p.x() + 50;
+            double nouveauY = p.y() +Offset;
+
+            pointsDecales.add(new Point(nouveauX, nouveauY));
+        }
+        DrawingHelper DH = new DrawingHelper();
+
+        // 2. Affichage du tracé utilisateur redressé (Rouge Corail)
+        // On utilise une opacité de 0.5 pour qu'il soit plus léger
+        Color userColor = color.brighter();
+        DH.draw(drawingPane, pointsDecales, userColor);
+
+        // 3. Affichage du tracé simplifié (Noir intense)
+        // On le dessine par-dessus pour bien voir la "colonne vertébrale" du tracé
+        if (score.rotatedPoints() != null && checkboxSmoothing.isSelected()) {
+            Color simplifiedColor = Color.rgb(0, 0, 0, 1.0);
 
 
 
+            DH.draw(drawingPane, score.rotatedPoints(), simplifiedColor);
+        }
 
+        // 4. Mise à jour de l'interface textuelle
+        // Affichage du score principal
+        // %.1f pour le score, %.2f pour la distance (2 décimales), et %.1f pour l'angle
+        label.setText(String.format(
+                "Score: %.1f/100 | Distance: %.2f px | Angle: %.1f°",
+                score.score(),
+                score.bestFrechetDistance(),
+                score.Angle()
+        ));
 
-
-
-
-
-
-
-        // 4. Afficher les résultats
-        scoreLabel.setText(String.format("%.1f/100 (Fréchet: %.2f px)", score, frechetDistance));
     }
 
     /**
@@ -295,42 +330,80 @@ public class Controller implements Initializable {
 
     @FXML
     private void Test() {
-        DrawingHelper DH = new DrawingHelper();
+        final List<Color> couleurs = List.of(
+                Color.RED,
+                Color.PURPLE,
+                Color.BLUE,
+                Color.PINK,
+                Color.ORANGE,
+                Color.GREEN
+        );
+
 
         PathGenerator generator = new PathGenerator();
-        PathRotationOptimizer optimizer = new PathRotationOptimizer();
+        int numSteps = 100;
 
-        // 1. Définir le Modèle (Ligne de 0 à 100 sur l'axe X)
-        Point modelStart = new Point(10, 50);
-        Point modelEnd = new Point(110, 50);
-        int numSteps = 20;
-        List<Point> modelPath = generator.generatePerfectLine(modelStart, modelEnd, numSteps);
-
-        System.out.println("--- SCÉNARIO 1 : Ligne parfaite mais tournée à 90° ---");
+       // TEST 1
         // L'utilisateur a tourné son trait de 90 degrés
         List<Point> userPath_Rotated90 = generator.generateRotatedLine(
                 new Point(5, 50), new Point(55, 50), // Petit trait de 50 de long
                 numSteps, 90.0
         );
-        //DH.draw(drawingPane, userPath_Rotated90,Color.BLUE);
+        Score Test1 = calculateScore(userPath_Rotated90);
+        displayResults(Test1,T1,couleurs.get(0),50.0);
 
-        PathRotationOptimizer.RotationResult result1 = optimizer.findOptimalRotation(userPath_Rotated90, modelPath);
-        System.out.println("Résultat 1: Angle optimal trouvé: " + result1.bestAngle() + "°");
-        System.out.println("Distance Fréchet minimale: " + result1.bestFrechetDistance());
-        //DH.draw(drawingPane, result1.rotatedPoints(),Color.VIOLET);
 
-        System.out.println("\n--- SCÉNARIO 2 : Ligne de même taille mais inversée et bruité ---");
+        //--- SCÉNARIO 2 : Ligne de même taille mais inversée et bruité
         // Crée une ligne inversée (180°) avec du bruit léger
         List<Point> userPath_ReversedNoisy = generator.generateNoisyLine(
                 new Point(110, 50), new Point(10, 50), // Sens inversé
-                numSteps, 5 // Bruit de 0.5 unité
+                numSteps, 2 // Bruit de 0.5 unité
         );
-        DH.draw(drawingPane, userPath_ReversedNoisy,Color.YELLOW);
+        Score Test2 = calculateScore(userPath_ReversedNoisy);
+        displayResults(Test2,T2,couleurs.get(1),100.0);
 
-        PathRotationOptimizer.RotationResult result2 = optimizer.findOptimalRotation(userPath_ReversedNoisy, modelPath);
-        System.out.println("Résultat 2: Angle optimal trouvé: " + result2.bestAngle() + "°");
-        System.out.println("Distance Fréchet minimale: " + result2.bestFrechetDistance());
-        DH.draw(drawingPane, result2.rotatedPoints(),Color.GREEN);
+        //--- SCÉNARIO 3 : ligne courbé
+        // Crée une ligne
+        List<Point> userPath_curved = generator.generateArc(
+                new Point(110, 50), new Point(10, 80),
+                numSteps, 15
+        );
+        Score Test3 = calculateScore(userPath_curved);
+        displayResults(Test3,T3,couleurs.get(2),150.0);
+
+        //--- SCÉNARIO 4 : Ligne sinusoidale
+
+        List<Point> userPath_sin = generator.generateSinusoid(
+                new Point(110, 50), new Point(10, 50), // Sens inversé
+                numSteps, 130,1 // Bruit de 0.5 unité
+        );
+        Score Test4 = calculateScore(userPath_sin);
+        displayResults(Test4,T4,couleurs.get(3),200.0);
+
+        //--- SCÉNARIO 5 : Ligne sinusoidale
+
+        List<Point> userPath_dents = generator.generateSpikyLine(
+                new Point(110, 50), new Point(10, 50), // Sens inversé
+                numSteps, 4,2 // Bruit de 0.5 unité
+        );
+        Score Test5 = calculateScore(userPath_dents);
+        displayResults(Test5,T5,couleurs.get(4),250.0);
+
+        //--- SCÉNARIO 6 : Ligne retour en arrière
+
+        List<Point> userPath_s = generator.generateOverlappingLine(
+                new Point(110, 50), new Point(10, 50), // Sens inversé
+                numSteps, 20 // Bruit de 0.5 unité
+        );
+        Score Test6 = calculateScore(userPath_s);
+        displayResults(Test6,T6,couleurs.get(5),300.0);
+
     }
+
+
+
+
+
+
 
 }

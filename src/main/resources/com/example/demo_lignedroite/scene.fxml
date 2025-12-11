@@ -50,6 +50,17 @@
                 <Label text="Votre Tracé (Q)"/>
                 <Pane fx:id="drawingPane" VBox.vgrow="ALWAYS">
                 </Pane>
+                <VBox spacing="5.0" style="-fx-padding: 10;">
+                    <Label text="**Résultats des tests :**" />
+                    <Label fx:id="T1" />
+                    <Label fx:id="T2" />
+                    <Label fx:id="T3" />
+                    <Label fx:id="T4" />
+                    <Label fx:id="T5" />
+                    <Label fx:id="T6" />
+
+
+                </VBox>
             </VBox>
         </HBox>
     </center>
